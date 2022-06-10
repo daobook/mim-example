@@ -56,8 +56,7 @@ def parse_args():
         required=False,
         help='workers to process semantic masks')
     parser.add_argument('--extra-tag', type=str, default='nuimages')
-    args = parser.parse_args()
-    return args
+    return parser.parse_args()
 
 
 def get_img_annos(nuim, img_info, cat2id, seg_root):
@@ -133,9 +132,10 @@ def get_img_annos(nuim, img_info, cat2id, seg_root):
 
             x_min, y_min, x_max, y_max = ann['bbox']
             # encode calibrated instance mask
-            mask_anno = dict()
-            mask_anno['counts'] = base64.b64decode(
-                ann['mask']['counts']).decode()
+            mask_anno = {
+                'counts': base64.b64decode(ann['mask']['counts']).decode()
+            }
+
             mask_anno['size'] = ann['mask']['size']
 
             data_anno = dict(
@@ -184,8 +184,7 @@ def export_nuim_to_coco(nuim, data_root, out_dir, extra_tag, version, nproc):
     global process_img_anno
 
     def process_img_anno(img_info):
-        single_img_annos = get_img_annos(nuim, img_info, cat2id, seg_root)
-        return single_img_annos
+        return get_img_annos(nuim, img_info, cat2id, seg_root)
 
     print('Process img annotations...')
     if nproc > 1:
@@ -226,11 +225,12 @@ def main():
                 f'{args.out_dir}/{args.extra_tag}_{version}.json')
             selected_images = full_val_infos['images'][:2400]
             selected_img_ids = [x['id'] for x in selected_images]
-            selected_anns = []
+            selected_anns = [
+                ann
+                for ann in full_val_infos['annotations']
+                if ann['id'] in selected_img_ids
+            ]
 
-            for ann in full_val_infos['annotations']:
-                if ann['id'] in selected_img_ids:
-                    selected_anns.append(ann)
 
             selected_val_infos = dict(
                 images=selected_images,
